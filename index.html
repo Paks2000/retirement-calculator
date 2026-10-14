@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retirement Corpus Calculator</title>
+  <style>
+/* ---------- Colours (change --accent to re-theme the whole page) ---------- */
+:root {
+  --accent: #4f46e5;
+  --accent-soft: #eef0ff;
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --text: #14161f;
+  --muted: #6b7083;
+  --border: #e6e8f0;
+  --good: #15803d;
+  --bad: #c2410c;
+  --warn-bg: #fff4e5;
+  --shadow: 0 1px 2px rgba(20, 22, 31, 0.04), 0 8px 24px rgba(20, 22, 31, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #8b93ff;
+    --accent-soft: #23264a;
+    --bg: #0e1016;
+    --card: #171a23;
+    --text: #eceef5;
+    --muted: #9aa0b4;
+    --border: #272b38;
+    --good: #4ade80;
+    --bad: #fb923c;
+    --warn-bg: #2d2113;
+    --shadow: none;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 16px 56px;
+}
+
+h1 { font-size: 1.75rem; margin: 0 0 4px; letter-spacing: -0.02em; }
+h2 { font-size: 1rem; margin: 0 0 16px; letter-spacing: -0.01em; }
+p { margin: 0; }
+
+.top { margin-bottom: 24px; }
+.sub { color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.solve-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+  padding: 16px 24px;
+}
+.solve-card label { font-weight: 600; }
+.solve-card p { flex-basis: 100%; }
+
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  min-width: 260px;
+  max-width: 100%;
+}
+
+/* ---------- Headline ---------- */
+.headline {
+  text-align: center;
+  padding: 40px 24px;
+  margin-bottom: 16px;
+}
+.headline-label { color: var(--muted); font-size: 0.95rem; }
+.headline-value {
+  font-size: clamp(2.4rem, 8vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+  margin: 4px 0;
+  line-height: 1.1;
+}
+.headline-full { color: var(--muted); font-size: 0.95rem; }
+.headline-msg {
+  margin: 12px auto 0;
+  max-width: 520px;
+  background: var(--warn-bg);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+}
+
+/* ---------- Stats ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.stat { padding: 18px 20px; }
+.stat-label { color: var(--muted); font-size: 0.82rem; }
+.stat-value { font-size: 1.25rem; font-weight: 650; margin-top: 4px; word-break: break-word; }
+.stat-value.good { color: var(--good); }
+.stat-value.bad { color: var(--bad); }
+
+/* ---------- Two columns ---------- */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.right { display: grid; gap: 16px; }
+
+/* ---------- Inputs ---------- */
+.field {
+  position: relative;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.field:first-child { border-top: none; padding-top: 0; }
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.field-name { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 500; }
+
+.value-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px 10px;
+  color: var(--muted);
+}
+.value-box:focus-within { border-color: var(--accent); }
+.value-box input {
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 9ch;
+  text-align: right;
+}
+
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; }
+
+.field.locked { opacity: 0.55; }
+.field.locked .value-box { background: var(--border); }
+.field.locked input { cursor: not-allowed; }
+
+/* ---------- "?" tooltips ---------- */
+.tip-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: help;
+  flex-shrink: 0;
+}
+.tip-text {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 38px;
+  z-index: 5;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.45;
+  padding: 10px 14px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.field:first-child .tip-text { top: 24px; }
+.tip-btn:hover + .tip-text,
+.tip-btn:focus + .tip-text { display: block; }
+
+/* ---------- Chart + SWR ---------- */
+.chart-wrap { position: relative; height: 300px; }
+#chartNote { margin-top: 12px; }
+.swr-line { margin-bottom: 8px; }
+.swr-flag { font-size: 0.92rem; color: var(--muted); }
+.swr-flag.warn { background: var(--warn-bg); color: var(--text); border-radius: 12px; padding: 10px 14px; }
+
+.disclaimer {
+  margin-top: 32px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 860px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .card { padding: 18px; border-radius: 16px; }
+  .stats { gap: 12px; }
+  .stat-value { font-size: 1.05rem; }
+  .field-head { flex-wrap: wrap; }
+  select { min-width: 0; width: 100%; }
+}
+
+</style>
+</head>
+<body>
+  <main class="page">
+
+    <header class="top">
+      <h1>Retirement Corpus Calculator</h1>
+      <p class="sub">Move the sliders and watch everything update instantly.</p>
+    </header>
+
+    <!-- Solve-for dropdown -->
+    <section class="card solve-card">
+      <label for="solveFor">Solve for:</label>
+      <select id="solveFor"></select>
+      <p class="muted small">Pick an input and its slider locks while its value is calculated for you.</p>
+    </section>
+
+    <!-- Big headline number -->
+    <section class="card headline" aria-live="polite">
+      <p class="headline-label" id="headlineLabel"></p>
+      <p class="headline-value" id="headlineValue"></p>
+      <p class="headline-full" id="headlineFull"></p>
+      <p class="headline-msg" id="headlineMsg" hidden></p>
+    </section>
+
+    <!-- Secondary figures -->
+    <section class="stats">
+      <div class="card stat">
+        <p class="stat-label">Monthly expense at retirement</p>
+        <p class="stat-value" id="outInflated"></p>
+      </div>
+      <div class="card stat">
+        <p class="stat-label">Required corpus</p>
+        <p class="stat-value" id="outCorpus"></p>
+      </div>
+      <div class="card stat">
+        <p class="stat-label">Projected savings</p>
+        <p class="stat-value" id="outProjected"></p>
+      </div>
+      <div class="card stat">
+        <p class="stat-label" id="outGapLabel">Gap / surplus</p>
+        <p class="stat-value" id="outGap"></p>
+      </div>
+    </section>
+
+    <div class="columns">
+      <!-- Inputs -->
+      <section class="card inputs">
+        <h2>Your numbers</h2>
+        <div id="inputsContainer"></div>
+      </section>
+
+      <!-- Chart + checks -->
+      <div class="right">
+        <section class="card">
+          <h2>Corpus over time</h2>
+          <div class="chart-wrap"><canvas id="chart"></canvas></div>
+          <p class="muted small" id="chartNote"></p>
+        </section>
+
+        <section class="card">
+          <h2>Safe withdrawal check</h2>
+          <p class="swr-line">Annual need at retirement ÷ withdrawal rate = <strong id="swrCorpus"></strong></p>
+          <p class="swr-flag" id="swrFlag"></p>
+        </section>
+      </div>
+    </div>
+
+    <p class="disclaimer">
+      This calculator gives a rough estimate based on the numbers you enter. It is not financial,
+      tax or investment advice. Real returns, inflation and taxes will vary, so please speak to a
+      qualified advisor before making decisions.
+    </p>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script>
+/* Retirement Corpus Calculator
+   Sections: 1) input definitions  2) maths  3) solver  4) formatting  5) page building  6) drawing results */
+
+/* ============ 1) INPUT DEFINITIONS ============
+   Edit min / max / step / def (default) here to change slider ranges. */
+const INPUTS = [
+  { key: 'inflation',  label: 'Inflation',                              unit: '%',   min: 0,    max: 15,      step: 0.1,  def: 6,
+    tip: 'How fast prices rise each year. At 6%, something that costs ₹100 today costs about ₹106 next year.' },
+  { key: 'expense',    label: 'Monthly expected expense today',         unit: '₹',   min: 5000, max: 500000,  step: 1000, def: 50000,
+    tip: 'What you spend every month today, in today\'s money. We grow it with inflation up to your retirement date.' },
+  { key: 'years',      label: 'Years to retirement',                    unit: 'yrs', min: 1,    max: 50,      step: 1,    def: 25, integer: true,
+    tip: 'How many years from now until you stop working.' },
+  { key: 'retYears',   label: 'Retirement period',                      unit: 'yrs', min: 1,    max: 50,      step: 1,    def: 30, integer: true,
+    tip: 'How many years you expect to live after retiring. Plan a little longer than you think you need.' },
+  { key: 'incomePre',  label: 'Monthly expected income until retirement', unit: '₹', min: 0,    max: 1000000, step: 5000, def: 100000,
+    tip: 'What you earn every month while you are still working (salary, business, etc.). Assumed to stay flat.' },
+  { key: 'incomePost', label: 'Monthly expected income post-retirement', unit: '₹',  min: 0,    max: 500000,  step: 1000, def: 20000,
+    tip: 'Regular income you expect after retiring, such as pension or rent, in today\'s money. It is assumed to grow with inflation.' },
+  { key: 'ret',        label: 'Expected annual return',                 unit: '%',   min: 1,    max: 20,      step: 0.1,  def: 12,
+    tip: 'The yearly growth you expect from your investments before tax.' },
+  { key: 'tax',        label: 'Tax rate on returns',                    unit: '%',   min: 0,    max: 40,      step: 0.5,  def: 10,
+    tip: 'The share of your investment gains that goes to tax. Your return is reduced by this much.' },
+  { key: 'withdrawal', label: 'Withdrawal rate',                        unit: '%',   min: 1,    max: 10,      step: 0.1,  def: 4,
+    tip: 'The percentage of your corpus you plan to withdraw in the first year of retirement. 3–4% is a common rule of thumb. Used only for the safe withdrawal check.' },
+];
+const BY_KEY = Object.fromEntries(INPUTS.map(i => [i.key, i]));
+
+const values = {};                       // current value of every input
+INPUTS.forEach(i => { values[i.key] = i.def; });
+let solveKey = 'corpus';                 // 'corpus' or an input key
+const elements = {};                     // page elements for each input
+
+/* ============ 2) THE MATHS ============ */
+function compute(v) {
+  const g  = 1 + v.inflation / 100;               // yearly inflation factor
+  const rp = (v.ret / 100) * (1 - v.tax / 100);   // post-tax return
+  const N  = v.years, R = v.retYears;
+
+  // 1. Inflate monthly expense to the retirement date
+  const inflatedExpense = v.expense * Math.pow(g, N);
+
+  // 2. Net need in the first year of retirement (post income also grows with inflation)
+  const netMonthlyToday = Math.max(0, v.expense - v.incomePost);
+  const needFirstYear   = netMonthlyToday * 12 * Math.pow(g, N);
+
+  // 4. Required corpus: present value (at retirement) of a growing stream of withdrawals,
+  //    each taken at the START of the year, discounted at the post-tax return
+  const q = g / (1 + rp);
+  const annuityFactor = Math.abs(q - 1) < 1e-12 ? R : (1 - Math.pow(q, R)) / (1 - q);
+  const corpus = needFirstYear * annuityFactor;
+
+  // 5. Savings build-up: monthly surplus (income - expense that is growing), invested monthly
+  const rm = Math.pow(1 + rp, 1 / 12) - 1;       // equivalent monthly rate
+  const yearFactor = rm === 0 ? 12 : rp / rm;    // value at year-end of 12 monthly deposits of ₹1
+  let bal = 0;
+  const accumulation = [0];
+  for (let y = 0; y < N; y++) {
+    const surplus = v.incomePre - v.expense * Math.pow(g, y);
+    bal = bal * (1 + rp) + surplus * yearFactor;
+    accumulation.push(bal);
+  }
+  const projected = bal;
+
+  // Drawdown paths (for the chart): projected savings and the required corpus
+  const drawdown = (start) => {
+    const path = [start];
+    let b = start, runsOutIn = null;
+    for (let k = 0; k < R; k++) {
+      b = (b - needFirstYear * Math.pow(g, k)) * (1 + rp);
+      if (b < -1e-6 && runsOutIn === null) runsOutIn = k + 1;
+      path.push(b);
+    }
+    return { path, runsOutIn };
+  };
+  const projDraw = drawdown(projected);
+  const reqDraw  = drawdown(corpus);
+
+  // 6. Safe withdrawal check
+  const swrCorpus = v.withdrawal > 0 ? needFirstYear / (v.withdrawal / 100) : Infinity;
+
+  return {
+    inflatedExpense, needFirstYear, corpus, projected,
+    gap: projected - corpus, swrCorpus, accumulation,
+    projDraw, reqDraw
+  };
+}
+
+/* ============ 3) SOLVER (goal seek) ============ */
+// Returns { ok:true, value } or { ok:false, reason }
+function solve(key) {
+  if (key === 'corpus') return { ok: true, value: compute(values).corpus };
+
+  const def = BY_KEY[key];
+
+  // Withdrawal rate doesn't affect savings, so we solve it differently:
+  // the rate at which the safe-withdrawal corpus equals the required corpus.
+  if (key === 'withdrawal') {
+    const r = compute(values);
+    if (r.corpus <= 0) return { ok: false, reason: 'none' };
+    const w = (r.needFirstYear / r.corpus) * 100;
+    if (w < def.min || w > def.max) return { ok: false, reason: 'none' };
+    return { ok: true, value: w };
+  }
+
+  // g(x) = projected savings - required corpus, with input `key` set to x
+  const gap = (x) => { const c = compute({ ...values, [key]: x }); return c.projected - c.corpus; };
+
+  // Step 1: scan the slider range to find where the sign flips (some inputs aren't strictly one-directional)
+  const pts = [];
+  if (def.integer) { for (let x = def.min; x <= def.max; x++) pts.push(x); }
+  else { for (let i = 0; i <= 400; i++) pts.push(def.min + (def.max - def.min) * i / 400); }
+
+  const gs = pts.map(gap);
+  let lo = -1, hi = -1;
+  for (let i = 0; i < pts.length; i++) {
+    if (gs[i] === 0) return { ok: true, value: pts[i] };
+    if (i > 0 && (gs[i - 1] < 0) !== (gs[i] < 0)) { lo = i - 1; hi = i; break; }
+  }
+  if (lo < 0) return { ok: false, reason: gs.every(x => x >= 0) ? 'always' : 'none' };
+
+  // Step 2: binary search inside that bracket
+  let a = pts[lo], b = pts[hi];
+  const aNeg = gs[lo] < 0;
+  if (def.integer) {
+    while (b - a > 1) {
+      const m = Math.floor((a + b) / 2);
+      ((gap(m) < 0) === aNeg) ? (a = m) : (b = m);
+    }
+    return { ok: true, value: gap(a) >= 0 ? a : b };     // pick the whole number that meets the goal
+  }
+  for (let i = 0; i < 80; i++) {
+    const m = (a + b) / 2;
+    ((gap(m) < 0) === aNeg) ? (a = m) : (b = m);
+  }
+  return { ok: true, value: (a + b) / 2 };
+}
+
+/* ============ 4) FORMATTING ============ */
+const nf = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+function rupees(n) { return (n < 0 ? '−' : '') + '₹' + nf.format(Math.abs(Math.round(n))); }
+function rupeesShort(n) {
+  const a = Math.abs(n), s = n < 0 ? '−' : '';
+  if (a >= 1e7) return s + '₹' + (a / 1e7).toFixed(2) + ' Cr';
+  if (a >= 1e5) return s + '₹' + (a / 1e5).toFixed(2) + ' L';
+  return rupees(n);
+}
+function formatValue(def, x) {
+  if (def.unit === '₹')   return nf.format(Math.round(x));
+  if (def.unit === 'yrs') return String(Math.round(x));
+  return (Math.round(x * 10) / 10).toString();
+}
+function parseNumber(text) { return parseFloat(String(text).replace(/,/g, '')); }
+function clamp(x, def) { return Math.min(def.max, Math.max(def.min, x)); }
+
+/* ============ 5) BUILD THE PAGE ============ */
+function buildPage() {
+  const select = document.getElementById('solveFor');
+  select.innerHTML = '<option value="corpus">Required Corpus</option>' +
+    INPUTS.map(i => `<option value="${i.key}">${i.label}</option>`).join('');
+  select.addEventListener('change', () => { solveKey = select.value; render(); });
+
+  const box = document.getElementById('inputsContainer');
+  INPUTS.forEach(def => {
+    const field = document.createElement('div');
+    field.className = 'field';
+    field.innerHTML = `
+      <div class="field-head">
+        <div class="field-name">
+          <span>${def.label}</span>
+          <button type="button" class="tip-btn" aria-label="What is this?">?</button>
+          <div class="tip-text" role="tooltip">${def.tip}</div>
+        </div>
+        <div class="value-box">
+          ${def.unit === '₹' ? '<span>₹</span>' : ''}
+          <input type="text" inputmode="decimal" aria-label="${def.label}">
+          ${def.unit !== '₹' ? `<span>${def.unit}</span>` : ''}
+        </div>
+      </div>
+      <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" aria-label="${def.label} slider">`;
+    box.appendChild(field);
+
+    const text = field.querySelector('input[type="text"]');
+    const slider = field.querySelector('input[type="range"]');
+    elements[def.key] = { field, text, slider };
+
+    slider.addEventListener('input', () => {
+      values[def.key] = parseFloat(slider.value);
+      text.value = formatValue(def, values[def.key]);
+      render();
+    });
+    text.addEventListener('input', () => {            // live while typing
+      const x = parseNumber(text.value);
+      if (!isNaN(x)) { values[def.key] = clamp(x, def); slider.value = values[def.key]; render(); }
+    });
+    text.addEventListener('change', () => {           // tidy up when finished
+      text.value = formatValue(def, values[def.key]);
+    });
+  });
+}
+
+/* ============ 6) SHOW THE RESULTS ============ */
+let chart = null;
+
+function render() {
+  // Work out the solved value, then use it in the calculation
+  const result = solve(solveKey);
+  const v = { ...values };
+  if (result.ok && solveKey !== 'corpus') v[solveKey] = result.value;
+  const r = compute(v);
+
+  // Input rows: lock / unlock and show solved value
+  INPUTS.forEach(def => {
+    const { field, text, slider } = elements[def.key];
+    const locked = def.key === solveKey;
+    field.classList.toggle('locked', locked);
+    text.disabled = slider.disabled = locked;
+    if (locked) {
+      text.value = result.ok ? formatValue(def, result.value) : '—';
+      if (result.ok) slider.value = result.value;
+    } else if (document.activeElement !== text) {
+      text.value = formatValue(def, values[def.key]);
+      slider.value = values[def.key];
+    }
+  });
+
+  // Headline
+  const label = document.getElementById('headlineLabel');
+  const big = document.getElementById('headlineValue');
+  const full = document.getElementById('headlineFull');
+  const msg = document.getElementById('headlineMsg');
+  msg.hidden = true;
+
+  if (solveKey === 'corpus') {
+    label.textContent = 'You need a retirement corpus of';
+    big.textContent = rupeesShort(r.corpus);
+    full.textContent = rupees(r.corpus) + ' at the day you retire';
+  } else if (result.ok) {
+    const def = BY_KEY[solveKey];
+    label.textContent = 'To reach your goal, set “' + def.label + '” to';
+    big.textContent = def.unit === '₹' ? rupees(result.value)
+                    : formatValue(def, result.value) + (def.unit === '%' ? '%' : ' years');
+    full.textContent = def.unit === '₹' && result.value >= 1e5 ? rupeesShort(result.value) : '';
+  } else {
+    label.textContent = 'Solving for “' + BY_KEY[solveKey].label + '”';
+    big.textContent = 'No answer in range';
+    full.textContent = '';
+    msg.hidden = false;
+    msg.textContent = result.reason === 'always'
+      ? 'Good news: your savings already beat the required corpus across the whole slider range for this input. Try solving for a different input.'
+      : 'We couldn\'t find a value within the slider range that makes your savings match the corpus you need. Try changing another input (for example a longer time to retirement, higher income or lower expenses) or pick a different input to solve for.';
+  }
+
+  // Secondary figures
+  const gapEl = document.getElementById('outGap');
+  document.getElementById('outInflated').textContent = rupees(r.inflatedExpense);
+  document.getElementById('outCorpus').textContent = rupeesShort(r.corpus);
+  document.getElementById('outProjected').textContent = rupeesShort(r.projected);
+  document.getElementById('outGapLabel').textContent = r.gap >= 0 ? 'Surplus' : 'Shortfall';
+  gapEl.textContent = rupeesShort(Math.abs(r.gap));
+  gapEl.className = 'stat-value ' + (r.gap >= 0 ? 'good' : 'bad');
+
+  // Safe withdrawal check
+  document.getElementById('swrCorpus').textContent = isFinite(r.swrCorpus) ? rupeesShort(r.swrCorpus) : '—';
+  const flag = document.getElementById('swrFlag');
+  if (r.corpus > 0 && isFinite(r.swrCorpus)) {
+    const diff = (r.swrCorpus - r.corpus) / r.corpus;
+    const pct = Math.round(Math.abs(diff) * 100);
+    if (Math.abs(diff) > 0.25) {
+      flag.className = 'swr-flag warn';
+      flag.textContent = diff > 0
+        ? `This is ${pct}% higher than the required corpus of ${rupeesShort(r.corpus)}. Your withdrawal rate is quite cautious compared to the plan above.`
+        : `This is ${pct}% lower than the required corpus of ${rupeesShort(r.corpus)}. Your withdrawal rate looks aggressive for the plan above; the corpus may not last.`;
+    } else {
+      flag.className = 'swr-flag';
+      flag.textContent = `Within ${pct}% of the required corpus (${rupeesShort(r.corpus)}), so the two methods broadly agree.`;
+    }
+  } else {
+    flag.className = 'swr-flag';
+    flag.textContent = 'No net withdrawals are needed, so there is nothing to compare.';
+  }
+
+  drawChart(r, v);
+}
+
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function drawChart(r, v) {
+  const N = v.years, R = v.retYears;
+  const labels = [];
+  for (let t = 0; t <= N + R; t++) labels.push(t);
+
+  const projected = r.accumulation.concat(r.projDraw.path.slice(1)).map(x => Math.max(0, x));
+  const required  = labels.map(t => t < N ? null : Math.max(0, r.reqDraw.path[t - N]));
+
+  const note = document.getElementById('chartNote');
+  const out = r.projDraw.runsOutIn;
+  note.textContent = out === null
+    ? 'Your projected savings last through the whole retirement period.'
+    : `Your projected savings would run out about ${out} year${out === 1 ? '' : 's'} into retirement (year ${N + out}).`;
+
+  if (typeof Chart === 'undefined') {
+    note.textContent = 'The chart needs an internet connection to load. ' + note.textContent;
+    return;
+  }
+
+  const accent = cssVar('--accent'), muted = cssVar('--muted'), grid = cssVar('--border');
+  const data = {
+    labels,
+    datasets: [
+      { label: 'Your projected savings', data: projected, borderColor: accent, backgroundColor: accent + '22',
+        fill: true, tension: 0.25, pointRadius: 0, borderWidth: 2.5 },
+      { label: 'Required corpus path', data: required, borderColor: muted, borderDash: [6, 6],
+        fill: false, tension: 0.25, pointRadius: 0, borderWidth: 1.5, spanGaps: false }
+    ]
+  };
+
+  if (chart) {
+    chart.data = data;
+    chart.options.scales.x.ticks.color = muted;
+    chart.options.scales.y.ticks.color = muted;
+    chart.options.scales.y.grid.color = grid;
+    chart.options.plugins.legend.labels.color = muted;
+    chart.update('none');
+    return;
+  }
+
+  chart = new Chart(document.getElementById('chart'), {
+    type: 'line',
+    data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: muted, boxWidth: 12, usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            title: items => 'Year ' + items[0].label,
+            label: item => item.dataset.label + ': ' + rupeesShort(item.parsed.y)
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Years from today', color: muted },
+             ticks: { color: muted, maxTicksLimit: 10 }, grid: { display: false } },
+        y: { ticks: { color: muted, callback: val => rupeesShort(val) }, grid: { color: grid }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+/* Redraw colours if the user switches between light and dark mode */
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (chart) { chart.destroy(); chart = null; }
+  render();
+});
+
+buildPage();
+render();
+
+</script>
+</body>
+</html>
